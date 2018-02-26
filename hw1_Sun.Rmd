@@ -1,0 +1,95 @@
+---
+title: "hw1_Sun"
+author: "Xiaozhong Sun"
+date: "2/20/2018"
+output: html_document
+fontsize: 12
+theme: lab
+code: hide
+
+---
+
+```{r}
+democracy<-read.csv("democracy.csv",stringsAsFactors = FALSE,na.string =c(".", "NA"))
+library("dplyr")
+library("ggplot2")
+```
+
+
+```{r}
+democracy<-mutate(democracy,logGDPW = log(GDPW))
+summary(democracy)
+ggplot(data=democracy, aes(democracy$POLLIB)) + stat_count( breaks=seq(1, 7, by = 1), 
+                 col="red", 
+                 fill="green", 
+                 alpha = .2)+labs(title="Histogram for Political Liberties") +labs(x="Political Liberties", y="Count")
+ggplot(data=democracy, aes(democracy$GDPW)) + geom_histogram(breaks=seq(0, 38000, by = 4000), 
+                 col="red", fill="blue",
+                 alpha = .2)+labs(title="Histogram for GDP per Capita") +labs(x="GDPW", y="Count")
+ggplot(data=democracy, aes(democracy$logGDPW)) + geom_histogram(binwidth = 0.5, 
+                 col="red", fill="yellow",
+                 alpha = .2)+labs(title="Histogram for logGDP per Capita") +labs(x="logGDPW", y="Count")
+```
+
+**The histogram for logGDP per capita is more normal than the original one, while the original one looks more skewed.**
+
+```{r}
+s1<-ggplot(democracy, aes(x=POLLIB, y=GDPW)) 
+s1+geom_jitter(aes(color = REGION),height = 0.5)
+s2<-ggplot(democracy, aes(x=POLLIB, y=logGDPW)) 
+s2+geom_jitter(aes(color = REGION),height = 0.5)
+```
+
+**With logGDP per Capita in place, the distribution is more uniform and even.**
+
+```{r}
+s3<-ggplot(filter(democracy,OIL==1),aes(x=POLLIB, y=GDPW)) 
+s4<-ggplot(filter(democracy,OIL==0),aes(x=POLLIB, y=GDPW)) 
+s3+geom_boxplot(aes(group = cut_width(POLLIB, 1)))+labs(title="Oil Producing Nations")
+s4+geom_boxplot(aes(group = cut_width(POLLIB, 1)))+labs(title="Non-oil Producing Nations")
+```
+
+```{r}
+CATH40<-filter(democracy, CATH >= 0.4)
+mean(CATH40$GDPW)
+mean(democracy$GDPW)
+```
+
+**The mean GDP per capita in countries with at least 40 percent Catholics is greater than mean GDP per capita for all countries.**
+
+```{r}
+ELF60P<-filter(democracy, ELF60 > 0.6)
+ELF60N<-filter(democracy, ELF60 < 0.6)
+ELF60NA<-filter(democracy, is.na(ELF60))
+mean(ELF60P$GDPW)
+mean(ELF60N$GDPW)
+mean(ELF60NA$GDPW)
+EDT1<-democracy %>% filter(YEAR == 1985,!is.na(EDT))
+median(EDT1$EDT)
+EDT1<-mutate(EDT1,Closeyear = EDT-5.625)
+filter(EDT1,Closeyear == 0)
+```
+
+**Venezuela**
+
+```{r}
+EDT1 %>% filter(REG==1) %>% select(EDT) %>% summary
+```
+
+**7.805**
+
+```{r}
+EDT2<-EDT1 %>% filter(REG==1) 
+EDT2<-mutate(EDT2,Closeyear = EDT-7.805)
+filter(EDT2,Closeyear == 0)
+```
+
+**Mauritius**
+
+```{r}
+NEWC1<-democracy %>% filter(NEWC==1)
+quantile(NEWC1$ELF60, c(0.25, 0.75),na.rm = TRUE)
+NEWC2<-democracy %>% filter(NEWC==0)
+quantile(NEWC2$ELF60, c(0.25, 0.75),na.rm = TRUE)
+```
+

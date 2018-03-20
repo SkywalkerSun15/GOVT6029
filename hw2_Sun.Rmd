@@ -1,0 +1,131 @@
+---
+title: "hw2_Sun"
+author: "Xiaozhong Sun"
+date: "3/12/2018"
+output: html_document
+---
+```{r}
+library(tibble)
+library(tidyr)
+library(purrr)
+library(dplyr)
+library(ggplot2)
+library(texreg)
+library(stargazer)
+library(readr)
+```
+
+```{r}
+sprinters <- read_csv("sprinters.csv")
+```
+
+```{r}
+sprinters$ones <- 1
+X <- as.matrix(sprinters[,c(4,1,3)])
+y <- as.matrix(sprinters[,2])
+b<- solve(t(X)%*% X)%*% t(X)%*%y
+b
+```
+
+```{r}
+fin <- lm(finish ~ year+women, data = sprinters)
+summary(fin)
+```
+
+_*The results are the same, they are the coefficients of each term.*_
+
+```{r}
+xhyp <- data.frame(year = sprinters$year, women = mean(sprinters$women)) 
+preds <- predict(fin, newdata = xhyp , interval = "confidence")
+pred_plot <- cbind(preds, xhyp)
+p1<-ggplot(pred_plot, aes(x = year, y = fit, ymin = lwr, ymax =  upr)) +
+  geom_line() +
+  geom_ribbon(alpha = .3)
+p1 + ggtitle("Prediction of the Meter Sprint Finishing Time") +
+  xlab("year") + ylab("predicted finishing time")
+```
+
+```{r}
+fin_interact <- lm(finish ~ year*women, data = sprinters)
+summary(fin_interact)
+xhyp1 <-data.frame(year = sprinters$year,women = 0)
+xhyp2 <-data.frame(year = sprinters$year,women = 1)
+pred_interact1 <- predict(fin_interact, newdata = xhyp1  , interval = "confidence")
+pred_interact2 <- predict(fin_interact, newdata = xhyp2  , interval = "confidence")
+pred_plot1 <- cbind(pred_interact1, xhyp1)
+pred_plot2 <- cbind(pred_interact2, xhyp2)
+p2<-ggplot(pred_plot1, aes(x = year, y = fit, ymin = lwr, ymax =  upr)) +
+  geom_line() +
+  geom_ribbon(alpha = .3)
+p2 + ggtitle("Prediction of the Meter Sprint Finishing Time for Men") +
+  xlab("year") + ylab("predicted finishing time")
+p3<-ggplot(pred_plot2, aes(x = year, y = fit, ymin = lwr, ymax =  upr)) +
+  geom_line() +
+  geom_ribbon(alpha = .3)
+p3 + ggtitle("Prediction of the Meter Sprint Finishing Time for Women") +
+  xlab("year") + ylab("predicted finishing time")
+```
+
+```{r}
+prewomen<-data_frame(year = 2001, women = 1)
+premen<-data_frame(year= 2001, women=0)
+predict(fin, newdata  = prewomen,interval = "confidence")
+predict(fin, newdata  = premen,interval = "confidence")
+```
+
+```{r}
+predict(fin, newdata  = data_frame(year=2156, women = 1),interval = "confidence")
+predict(fin, newdata  = data_frame(year=2156, women = 0),interval = "confidence")
+predict(fin, newdata  = data_frame(year=3000, women = 1),interval = "confidence")
+predict(fin, newdata  = data_frame(year=3000, women = 0),interval = "confidence")
+```
+
+_*Based on the prediction of year 3000, we can see that the finishing time become negative, which is impossible for human species (maybe technology is advanced enough for us to run back to the past, or time travel). Therefore, the assumption that finshing time is a linear model of year and gender is questionable. With time goes on, the results become less accurate and thus I don't trust the result of 2156.*_
+
+```{r}
+data("anscombe")
+anscombeclean <- anscombe %>%
+    mutate(obs = row_number()) %>%
+    gather(variable_dataset, value, - obs) %>%
+    separate(variable_dataset, c("variable", "dataset"), sep = 1L) %>%
+    spread(variable, value) %>%
+    arrange(dataset, obs)
+```
+
+```{r}
+anscombeclean %>% group_by(dataset) %>% select(x)%>%summarise_each(funs(mean, sd))
+anscombeclean %>% group_by(dataset) %>% select(y)%>%summarise_each(funs(mean, sd))
+cor(anscombeclean[c(1:11),c(3:4)], use="pairwise", method="spearman")
+cor(anscombeclean[c(12:22),c(3:4)], use="pairwise", method="spearman")
+cor(anscombeclean[c(13:33),c(3:4)], use="pairwise", method="spearman")
+cor(anscombeclean[c(14:44),c(3:4)], use="pairwise", method="spearman")
+lm1<-lm(y ~ x, data=subset(anscombeclean, dataset=="1"))
+lm2<-lm(y ~ x, data=subset(anscombeclean, dataset=="2"))
+lm3<-lm(y ~ x, data=subset(anscombeclean, dataset=="3"))
+lm4<-lm(y ~ x, data=subset(anscombeclean, dataset=="4"))
+```
+
+_*Based on the coefficients of regressions and the coefficients of correlation of these dataset,these dataset should look very similar.*_
+
+```{r}
+summary(lm1)$r.squared
+summary(lm2)$r.squared
+summary(lm3)$r.squared
+summary(lm4)$r.squared
+#?? How to add r^2 and regression line into plot
+lm<-lm(y~x,data=anscombeclean)
+residuals_lm <- lm$residuals
+fitted_lm <- lm$fitted.values
+res_pre<-cbind(residuals_lm,fitted_lm,anscombeclean)
+p4<-ggplot(res_pre, aes(fitted_lm, residuals_lm)) +geom_abline(intercept = 0, slope = 0,linetype="dashed")+
+  geom_point() +facet_wrap(~ dataset)
+p4+ggtitle("Residuals vs Fitted Values") +
+  xlab("fitted values") + ylab("residuals")
+```
+
+_*Based on the scatterplots and fitted regression lines, we can see that although these regressions have very similar R^2 and regression lines, the validity of the regression functions is different. The best fit linear regression is the one on the top-left. The one on the top-right is not a linear regression but a non-linear one, which is not adequate for using linear regression. The one on the bottom-left is associated with Heteroscedasticity. As x increases, the residual increases. The one on the bottom-right is associated with big outlier, which influences the regression line largely. These information are also shown from the plot of residuals vs fitted values. Therefore, it is insufficient to evaluate the performance of a model just based on its R^2.*_
+
+##Research Project
+The theory of decentralization indicates strategic interactions among local jurisdictions. Compete for limited mobile capital and human resources and achieving development goals, local governments implement fiscal, environmental, labor regulatory, and trade policies partly depending on their rival jurisdictions. In the real world, these strategic policy interactions could lead to regional divergence due to competitive edge endowed by different regions. For instance, empirical evidence finds that fiscal decentralization tends to increase regional disparities in developing countries and reduces them in developed countries. In light of this, some scholars propose that the effects of fiscal decentralization on regional disparities might be influenced by the embedded quality of institutional settings. The concerns for uneven regional development and urban stratification raise the research questions for this study: What factors influence the effects of inter-jurisdictional competitions on the degree of regional disparities? What is the role of government quality in influencing the effects of inter-jurisdictional competitions on the degree of regional disparities? Will higher government quality mitigate the effect of inter-jurisdictional competitions on the degree of regional disparities?
+Based on my research questions, this study identifies three key variables that need to be defined and constructed: dependent variable measuring the degree of regional disparities, an independent variable measuring the type and intensity of regional competitions, and an independent variable measuring the quality of government
+My study is based on China. Right now, I have the data of GDP, income, population, Foreign Direct Investment, and other regional characteristics at prefectural-city level from 31 provincial statistic year books from 2007 to 2017. The data that are still missing are detailed government expenditures on education, environmental protection, and health insurance. These data are used to construct variable measuring government quality.
